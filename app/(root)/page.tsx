@@ -4,8 +4,6 @@ const Home = () => {
   return (
     <div>
       <p>hello</p>
-
-      <UserButton afterSignOutUrl='/' />
     </div>
 
   )
