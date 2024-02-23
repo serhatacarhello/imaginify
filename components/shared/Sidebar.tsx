@@ -9,6 +9,7 @@ import { Button } from "../ui/button";
 
 const Sidebar = () => {
     const pathname = usePathname();
+    
     return (
         <aside className="sidebar">
             <div className="flex size-full flex-col gap-4">
