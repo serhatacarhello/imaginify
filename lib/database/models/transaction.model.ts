@@ -1,18 +1,9 @@
-import { Document, Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
-export interface ITransaction extends Document {
-    createdAt: Date;
-    stripeId: string;
-    amount: number;
-    plan?: string;
-    credits?: number;
-    buyer: Schema.Types.ObjectId;
-}
-
-const TransactionSchema = new Schema<ITransaction>({
+const TransactionSchema = new Schema({
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
     },
     stripeId: {
         type: String,
@@ -23,17 +14,18 @@ const TransactionSchema = new Schema<ITransaction>({
         type: Number,
         required: true,
     },
-    plan: { type: String },
+    plan: {
+        type: String,
+    },
     credits: {
         type: Number,
     },
     buyer: {
         type: Schema.Types.ObjectId,
-        ref: "User"
-    }
+        ref: "User",
+    },
 });
 
-const Transaction = models?.Transaction || model<ITransaction>("Transaction", TransactionSchema);
+const Transaction = models?.Transaction || model("Transaction", TransactionSchema);
 
 export default Transaction;
-

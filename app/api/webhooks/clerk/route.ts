@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
     // If there are no headers, error out
     if (!svix_id || !svix_timestamp || !svix_signature) {
-        return new Response("Error occured -- no svix headers", {
+        return new Response("Error occurred -- no svix headers", {
             status: 400,
         });
     }
@@ -36,6 +36,7 @@ export async function POST(req: Request) {
 
     // Create a new Svix instance with your secret.
     const wh = new Webhook(WEBHOOK_SECRET);
+    if (!wh) return console.log("wh problem in webhook")
 
     let evt: WebhookEvent;
 
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
         }) as WebhookEvent;
     } catch (err) {
         console.error("Error verifying webhook:", err);
-        return new Response("Error occured", {
+        return new Response("Error occurred", {
             status: 400,
         });
     }
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
                 },
             });
         }
-
+        console.log("new user", newUser)
         return NextResponse.json({ message: "OK", user: newUser });
     }
 
