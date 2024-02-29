@@ -6,9 +6,9 @@ import { handleError } from "../utils"
 import User from "../database/models/user.model"
 import Image from "../database/models/image.model"
 import { redirect } from "next/navigation"
-
 import { v2 as cloudinary } from "cloudinary"
-import { secureHeapUsed } from "crypto"
+
+
 
 const populateUser = (query: any) => query.populate({ path: 'author', modal: User, select: '_id firstName lastName' })
 
@@ -135,7 +135,7 @@ export async function getAllImages({ limit = 9, page = 1, searchQuery = '' }: { 
         }
 
         // Calculate the skip amount based on the page and limit
-        const skipAmount = (Number(page) - 1 * limit)
+        const skipAmount = (Number(page) - 1) * limit
 
         // Retrieve images from the database, populate user information, and apply sorting, skipping, and limiting
         const images = await populateUser(Image.find(query)).sort({ updatedAt: -1 }).skip(skipAmount).limit(limit)
@@ -149,7 +149,7 @@ export async function getAllImages({ limit = 9, page = 1, searchQuery = '' }: { 
         // Return the result including data, total number of pages, and total saved images
         return {
             data: JSON.parse(JSON.stringify(images)),
-            totalPage: Math.ceil(totalImages / limit),
+            totalPages: Math.ceil(totalImages / limit),
             savedImages,
         }
 
