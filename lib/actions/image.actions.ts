@@ -7,6 +7,9 @@ import User from "../database/models/user.model"
 import Image from "../database/models/image.model"
 import { redirect } from "next/navigation"
 
+import { v2 as cloudinary } from "cloudinary"
+import { secureHeapUsed } from "crypto"
+
 const populateUser = (query: any) => query.populate({ path: 'author', modal: User, select: '_id firstName lastName' })
 
 
@@ -72,6 +75,7 @@ export async function deleteImage(imageId: string) {
     }
 
 }
+
 // GET IMAGE
 export async function getImageById(imageId: string) {
 
@@ -85,6 +89,72 @@ export async function getImageById(imageId: string) {
         return JSON.parse(JSON.stringify(image))
 
     } catch (error) {
+        handleError(error)
+    }
+
+}
+// GET ALL IMAGES
+export async function getAllImages({ limit = 9, page = 1, searchQuery = '' }: { limit?: number, page: number, searchQuery?: string }) {
+
+    try {
+        // Connect to the database
+        await connectToDatabase()
+
+        // Configure Cloudinary with environment variables
+        cloudinary.config({
+            cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
+            secure: true,
+        })
+
+        // Define Cloudinary search expression with a folder name
+        let expression = 'folder=imaginify'
+
+        // If there is a search query, append it to the expression
+        if (searchQuery) {
+            expression += ` AND ${searchQuery}`
+        }
+
+        // Execute Cloudinary search and retrieve resources
+        const { resources } = await cloudinary.search.expression(expression).execute()
+
+        // Extract public_ids from the retrieved resources
+        const recourseIds = resources.map((resource: any) => resource.public_id)
+
+        // Define MongoDB query based on the search query
+        let query = {}
+
+        // If there is a search query, filter by public_ids
+        if (searchQuery) {
+            query = {
+                publicId: {
+                    $in: recourseIds
+                }
+            }
+        }
+
+        // Calculate the skip amount based on the page and limit
+        const skipAmount = (Number(page) - 1 * limit)
+
+        // Retrieve images from the database, populate user information, and apply sorting, skipping, and limiting
+        const images = await populateUser(Image.find(query)).sort({ updatedAt: -1 }).skip(skipAmount).limit(limit)
+
+        // Count total documents that match the query for pagination
+        const totalImages = await Image.find(query).countDocuments()
+
+        // Count total saved images in the database
+        const savedImages = await Image.find().countDocuments()
+
+        // Return the result including data, total number of pages, and total saved images
+        return {
+            data: JSON.parse(JSON.stringify(images)),
+            totalPage: Math.ceil(totalImages / limit),
+            savedImages,
+        }
+
+    } catch (error) {
+        // Handle errors and log them
         handleError(error)
     }
 
