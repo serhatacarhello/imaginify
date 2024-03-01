@@ -10,7 +10,7 @@ import { v2 as cloudinary } from "cloudinary"
 
 
 
-const populateUser = (query: any) => query.populate({ path: 'author', modal: User, select: '_id firstName lastName' })
+const populateUser = (query: any) => query.populate({ path: 'author', modal: User, select: '_id firstName lastName clerkId' })
 
 
 // ADD IMAGE
