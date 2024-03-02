@@ -1,104 +1,105 @@
-"use server"
+"use server";
 
-import { revalidatePath } from "next/cache"
-import { connectToDatabase } from "../database/mongoose"
-import { handleError } from "../utils"
-import User from "../database/models/user.model"
-import Image from "../database/models/image.model"
-import { redirect } from "next/navigation"
-import { v2 as cloudinary } from "cloudinary"
+import { revalidatePath } from "next/cache";
+import { connectToDatabase } from "../database/mongoose";
+import { handleError } from "../utils";
+import User from "../database/models/user.model";
+import Image from "../database/models/image.model";
+import { redirect } from "next/navigation";
+import { v2 as cloudinary } from "cloudinary";
 
-
-
-const populateUser = (query: any) => query.populate({ path: 'author', modal: User, select: '_id firstName lastName clerkId' })
-
+const populateUser = (query: any) =>
+    query.populate({
+        path: "author",
+        modal: User,
+        select: "_id firstName lastName clerkId",
+    });
 
 // ADD IMAGE
 export async function addImage({ image, userId, path }: AddImageParams) {
     try {
-        await connectToDatabase()
+        await connectToDatabase();
 
-        const author = await User.findById(userId)
+        const author = await User.findById(userId);
 
-        if (!author) throw new Error('User not found')
+        if (!author) throw new Error("User not found");
 
         const newImage = await Image.create({
             ...image,
             author: author._id,
-        })
+        });
 
-        revalidatePath(path)
+        revalidatePath(path);
 
-        return JSON.parse(JSON.stringify(newImage))
-
+        return JSON.parse(JSON.stringify(newImage));
     } catch (error) {
-        handleError(error)
+        handleError(error);
     }
-
 }
 // UPDATE IMAGE
 export async function updateImage({ image, userId, path }: UpdateImageParams) {
     try {
-        await connectToDatabase()
+        await connectToDatabase();
 
-        const imageToUpdate = await Image.findById(image._id)
+        const imageToUpdate = await Image.findById(image._id);
 
-        if (!imageToUpdate || imageToUpdate.author.toHexString() !== userId) throw new Error("Unauthorized or image not found")
+        if (!imageToUpdate || imageToUpdate.author.toHexString() !== userId)
+            throw new Error("Unauthorized or image not found");
 
         const updatedImage = await Image.findByIdAndUpdate(
             imageToUpdate._id,
             image,
             { new: true }
-        )
+        );
 
-        revalidatePath(path)
+        revalidatePath(path);
 
-        return JSON.parse(JSON.stringify(updatedImage))
-
+        return JSON.parse(JSON.stringify(updatedImage));
     } catch (error) {
-        handleError(error)
+        handleError(error);
     }
-
 }
 
 // DELETE IMAGE
 export async function deleteImage(imageId: string) {
     try {
-        await connectToDatabase()
+        await connectToDatabase();
 
-        await Image.findByIdAndDelete(imageId)
-
+        await Image.findByIdAndDelete(imageId);
     } catch (error) {
-        handleError(error)
+        handleError(error);
     } finally {
-        redirect("/")
+        redirect("/");
     }
-
 }
 
 // GET IMAGE
 export async function getImageById(imageId: string) {
-
     try {
-        await connectToDatabase()
+        await connectToDatabase();
 
-        const image = await populateUser(Image.findById(imageId))
+        const image = await populateUser(Image.findById(imageId));
 
-        if (!image) throw new Error("Image not found")
+        if (!image) throw new Error("Image not found");
 
-        return JSON.parse(JSON.stringify(image))
-
+        return JSON.parse(JSON.stringify(image));
     } catch (error) {
-        handleError(error)
+        handleError(error);
     }
-
 }
 // GET ALL IMAGES
-export async function getAllImages({ limit = 9, page = 1, searchQuery = '' }: { limit?: number, page: number, searchQuery?: string }) {
-
+export async function getAllImages({
+    limit = 9,
+    page = 1,
+    searchQuery = "",
+}: {
+    limit?: number;
+    page: number;
+    searchQuery?: string;
+}) {
     try {
         // Connect to the database
-        await connectToDatabase()
+        await connectToDatabase();
 
         // Configure Cloudinary with environment variables
         cloudinary.config({
@@ -106,56 +107,89 @@ export async function getAllImages({ limit = 9, page = 1, searchQuery = '' }: { 
             api_key: process.env.CLOUDINARY_API_KEY,
             api_secret: process.env.CLOUDINARY_API_SECRET,
             secure: true,
-        })
+        });
 
         // Define Cloudinary search expression with a folder name
-        let expression = 'folder=imaginify'
+        let expression = "folder=imaginify";
 
         // If there is a search query, append it to the expression
         if (searchQuery) {
-            expression += ` AND ${searchQuery}`
+            expression += ` AND ${searchQuery}`;
         }
 
         // Execute Cloudinary search and retrieve resources
-        const { resources } = await cloudinary.search.expression(expression).execute()
+        const { resources } = await cloudinary.search
+            .expression(expression)
+            .execute();
 
         // Extract public_ids from the retrieved resources
-        const recourseIds = resources.map((resource: any) => resource.public_id)
+        const recourseIds = resources.map((resource: any) => resource.public_id);
 
         // Define MongoDB query based on the search query
-        let query = {}
+        let query = {};
 
         // If there is a search query, filter by public_ids
         if (searchQuery) {
             query = {
                 publicId: {
-                    $in: recourseIds
-                }
-            }
+                    $in: recourseIds,
+                },
+            };
         }
 
         // Calculate the skip amount based on the page and limit
-        const skipAmount = (Number(page) - 1) * limit
+        const skipAmount = (Number(page) - 1) * limit;
 
         // Retrieve images from the database, populate user information, and apply sorting, skipping, and limiting
-        const images = await populateUser(Image.find(query)).sort({ updatedAt: -1 }).skip(skipAmount).limit(limit)
+        const images = await populateUser(Image.find(query))
+            .sort({ updatedAt: -1 })
+            .skip(skipAmount)
+            .limit(limit);
 
         // Count total documents that match the query for pagination
-        const totalImages = await Image.find(query).countDocuments()
+        const totalImages = await Image.find(query).countDocuments();
 
         // Count total saved images in the database
-        const savedImages = await Image.find().countDocuments()
+        const savedImages = await Image.find().countDocuments();
 
         // Return the result including data, total number of pages, and total saved images
         return {
             data: JSON.parse(JSON.stringify(images)),
             totalPages: Math.ceil(totalImages / limit),
             savedImages,
-        }
-
+        };
     } catch (error) {
         // Handle errors and log them
-        handleError(error)
+        handleError(error);
     }
-
 }
+
+export async function getUserImages({
+    limit = 9,
+    page = 1,
+    userId,
+}: {
+    limit?: number;
+    page: number;
+    userId: string;
+}) {
+    try {
+        await connectToDatabase();
+
+        const skipAmount = (Number(page) - 1) * limit;
+        const images = await populateUser(Image.find({ author: userId }))
+            .sort({ updatedAt: -1 })
+            .skip(skipAmount)
+            .limit(limit);
+
+        const totalImages = await Image.find({ author: userId }).countDocuments();
+
+        return {
+            data: JSON.parse(JSON.stringify(images)),
+            totalPages: Math.ceil(totalImages / limit),
+        };
+    } catch (error) {
+        handleError(error);
+    }
+}
+
