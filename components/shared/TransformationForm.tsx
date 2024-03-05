@@ -1,19 +1,9 @@
 "use client";
-import React, { useEffect, useState, useTransition } from "react";
 
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { z } from "zod";
+
 import {
   Select,
   SelectContent,
@@ -22,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
   aspectRatioOptions,
@@ -30,10 +22,11 @@ import {
   transformationTypes,
 } from "@/constants";
 import { CustomField } from "./CustomField";
+import { useEffect, useState, useTransition } from "react";
 import { AspectRatioKey, debounce, deepMergeObjects } from "@/lib/utils";
-import { updateCredits } from "@/lib/actions/user.actions";
 import MediaUploader from "./MediaUploader";
 import TransformedImage from "./TransformedImage";
+import { updateCredits } from "@/lib/actions/user.actions";
 import { getCldImageUrl } from "next-cloudinary";
 import { addImage, updateImage } from "@/lib/actions/image.actions";
 import { useRouter } from "next/navigation";
@@ -50,15 +43,15 @@ export const formSchema = z.object({
 const TransformationForm = ({
   action,
   data = null,
-  type,
   userId,
+  type,
   creditBalance,
   config = null,
 }: TransformationFormProps) => {
   const transformationType = transformationTypes[type];
   const [image, setImage] = useState(data);
   const [newTransformation, setNewTransformation] =
-    useState<Transformations | null>(data);
+    useState<Transformations | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTransforming, setIsTransforming] = useState(false);
   const [transformationConfig, setTransformationConfig] = useState(config);
@@ -75,6 +68,7 @@ const TransformationForm = ({
           publicId: data?.publicId,
         }
       : defaultValues;
+
   // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -111,8 +105,8 @@ const TransformationForm = ({
         try {
           const newImage = await addImage({
             image: imageData,
-            path: "/",
             userId,
+            path: "/",
           });
 
           if (newImage) {
@@ -128,9 +122,12 @@ const TransformationForm = ({
       if (action === "Update") {
         try {
           const updatedImage = await updateImage({
-            image: { ...imageData, _id: data._id },
-            path: `/transformations/${data._id}`,
+            image: {
+              ...imageData,
+              _id: data._id,
+            },
             userId,
+            path: `/transformations/${data._id}`,
           });
 
           if (updatedImage) {
@@ -169,7 +166,7 @@ const TransformationForm = ({
     type: string,
     onChangeField: (value: string) => void
   ) => {
-    const debouncedFunc = debounce(() => {
+    debounce(() => {
       setNewTransformation((prevState: any) => ({
         ...prevState,
         [type]: {
@@ -177,18 +174,20 @@ const TransformationForm = ({
           [fieldName === "prompt" ? "prompt" : "to"]: value,
         },
       }));
-    }, 1000);
-    debouncedFunc();
+    }, 1000)();
+
     return onChangeField(value);
   };
 
-  const onTransformHandler = () => {
+  const onTransformHandler = async () => {
     setIsTransforming(true);
+
     setTransformationConfig(
       deepMergeObjects(newTransformation, transformationConfig)
     );
 
     setNewTransformation(null);
+
     startTransition(async () => {
       await updateCredits(userId, creditFee);
     });
@@ -203,9 +202,7 @@ const TransformationForm = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* if user needs credit, show modal */}
         {creditBalance < Math.abs(creditFee) && <InsufficientCreditsModal />}
-
         <CustomField
           control={form.control}
           name="title"
@@ -213,12 +210,13 @@ const TransformationForm = ({
           className="w-full"
           render={({ field }) => <Input {...field} className="input-field" />}
         />
+
         {type === "fill" && (
           <CustomField
             control={form.control}
             name="aspectRatio"
-            className="w-full"
             formLabel="Aspect Ratio"
+            className="w-full"
             render={({ field }) => (
               <Select
                 onValueChange={(value) =>
@@ -252,8 +250,8 @@ const TransformationForm = ({
               className="w-full"
               render={({ field }) => (
                 <Input
-                  className="input-field"
                   value={field.value}
+                  className="input-field"
                   onChange={(e) =>
                     onInputChangeHandler(
                       "prompt",
@@ -265,12 +263,13 @@ const TransformationForm = ({
                 />
               )}
             />
+
             {type === "recolor" && (
               <CustomField
                 control={form.control}
                 name="color"
-                className="w-full"
                 formLabel="Replacement Color"
+                className="w-full"
                 render={({ field }) => (
                   <Input
                     value={field.value}
@@ -289,7 +288,7 @@ const TransformationForm = ({
             )}
           </div>
         )}
-        {/* cloudinary uploader */}
+
         <div className="media-uploader-field">
           <CustomField
             control={form.control}
@@ -298,9 +297,9 @@ const TransformationForm = ({
             render={({ field }) => (
               <MediaUploader
                 onValueChange={field.onChange}
-                image={image}
                 setImage={setImage}
                 publicId={field.value}
+                image={image}
                 type={type}
               />
             )}
@@ -315,7 +314,7 @@ const TransformationForm = ({
             transformationConfig={transformationConfig}
           />
         </div>
-        {/* form actions */}
+
         <div className="flex flex-col gap-4">
           <Button
             type="button"

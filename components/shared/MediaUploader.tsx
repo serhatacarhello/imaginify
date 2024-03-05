@@ -76,8 +76,6 @@ const MediaUploader = ({
                 sizes="(max-width:767px) 100vw, 50vw"
                 placeholder={dataUrl as PlaceholderValue}
                 className="media-uploader_cldImage"
-                // try
-                // preserveTransformations
               />
             </div>
           )}

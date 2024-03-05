@@ -8,9 +8,11 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
     <main className="root">
       <Sidebar />
       <MobileNav />
+
       <div className="root-container">
         <div className="wrapper">{children}</div>
       </div>
+
       <Toaster />
     </main>
   );

@@ -29,7 +29,7 @@ const ImageSchema = new Schema({
     width: { type: Number },
     height: { type: Number },
     config: { type: Object },
-    transformationURL: { type: String },
+    transformationUrl: { type: String },
     aspectRatio: { type: String },
     color: { type: String },
     prompt: { type: String },
