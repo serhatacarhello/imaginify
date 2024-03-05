@@ -142,7 +142,7 @@ export async function getAllImages({ limit = 9, page = 1, searchQuery = '' }: {
 
         return {
             data: JSON.parse(JSON.stringify(images)),
-            totalPage: Math.ceil(totalImages / limit),
+            totalPages: Math.ceil(totalImages / limit),
             savedImages,
         }
     } catch (error) {
